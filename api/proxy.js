@@ -1,31 +1,30 @@
-import fetch from 'node-fetch';
-
-export default async (req, res) => {
-    const { url } = req.query;  // Obtém a URL que foi enviada para o proxy
-
-    // Verifique se a URL foi recebida corretamente
-    if (!url) {
-        return res.status(400).send('URL não fornecida');
-    }
-
-    try {
-        // Fazendo a requisição para a API Unsplash com a URL fornecida
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error('Erro ao buscar dados do Unsplash');
-        }
-        
-        // Enviar os cabeçalhos CORS apropriados para permitir o acesso do seu frontend
-        res.setHeader('Access-Control-Allow-Origin', '*'); // Permite qualquer origem
-        res.setHeader('Access-Control-Allow-Methods', 'GET'); // Permite o método GET
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type'); // Permite o Content-Type header
-
-        // Retorna os dados ao frontend após processar a requisição
-        const data = await response.json();
-        res.json(data); // Retorna os dados ao cliente
-    } catch (error) {
-        // Em caso de erro, envia uma resposta apropriada
-        res.status(500).json({ error: error.message });
-    }
+const allowCors = (fn) => async (req, res) => {
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');  // Ou personalize, por exemplo, com `req.headers.origin`
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS, PATCH, DELETE, POST, PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();  // Pre-flight response
+    return;
+  }
+  
+  // Chama a função de tratamento da requisição
+  return await fn(req, res);
 };
+
+const handler = async (req, res) => {
+  const url = req.query.url;
+
+  // Realiza a chamada para o URL solicitado via proxy
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    res.status(200).json(data);  // Retorna a resposta da API solicitada
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching data from URL' });
+  }
+};
+
+module.exports = allowCors(handler);
