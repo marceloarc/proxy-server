@@ -1,29 +1,25 @@
-export default async function handler(req, res) {
-  const targetUrl = req.query.url;
-  if (!targetUrl) {
-    return res.status(400).json({ error: "No target URL provided" });
-  }
+// API proxy handler para fazer a requisição ao Unsplash com o client_id na URL.
 
-  try {
-    // Passando o cabeçalho 'Authorization' com o 'Client-ID'
-    const response = await fetch(targetUrl, {
-      method: req.method,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', // Usuário para simular um navegador
-        'Authorization': 'Client-ID RAXU1PptzmyPgMjOUO0MIO4mELSR-bVCNM_QmAqcVsk' // Cabeçalho de autorização com a chave correta
-      }
-    });
+import fetch from 'node-fetch';
 
-    const data = await response.json();
+export default async (req, res) => {
+    const { url } = req.query; // Obtém a URL da requisição
 
-    // Passando os cabeçalhos CORS para o cliente
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    if (!url) {
+        return res.status(400).send('URL não fornecida');
+    }
 
-    res.status(response.status).json(data); // Responde com os dados recebidos do Unsplash
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Erro ao acessar a URL do target' });
-  }
-}
+    try {
+        // Chamada ao Unsplash com o client_id na URL
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error('Erro ao buscar dados do Unsplash');
+        }
+
+        const data = await response.json();
+        res.json(data); // Retorna os dados para o frontend
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
