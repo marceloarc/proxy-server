@@ -1,6 +1,23 @@
+const allowedOrigins = [
+  'https://localhost:8000',
+  'https://localhost:80',
+  'http://localhost:80'
+  'http://localhost:8000',
+  'localhost:8000',
+  'https://marceloarc.github.io/editor-de-imagem/'
+];
+
 const allowCors = fn => async (req, res) => {
+  const origin = req.headers.origin;
+
+  // Verifica se o origin da requisição é válido
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', 'https://fallbackdomain.com'); // ou '*' para aceitar todas as origens
+  }
+
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS, PATCH, DELETE, POST, PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
@@ -13,27 +30,7 @@ const allowCors = fn => async (req, res) => {
 };
 
 const handler = async (req, res) => {
-  const url = decodeURIComponent(req.query.url);
-
-  const apiKey = 'qv3vrphna3SsguYXsQRAcgSX9ghfVCHZsoQst6sem0aUkwAK6cFez2pMBL8Irveg';  // Sua chave da API
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,  // Encaminhando o Authorization da API para o destino
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      res.status(200).json(data);  // Retorna os dados para o frontend
-    } else {
-      res.status(response.status).json({ error: 'Erro na requisição' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao buscar dados da URL' });
-  }
+  // Lógica do seu handler
 };
 
 module.exports = allowCors(handler);
