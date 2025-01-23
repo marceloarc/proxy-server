@@ -4,7 +4,8 @@ const allowedOrigins = [
   'http://localhost:80'
   'http://localhost:8000',
   'localhost:8000',
-  'https://marceloarc.github.io/editor-de-imagem/'
+  'https://marceloarc.github.io/editor-de-imagem/',
+  'https://marceloarc.github.io'
 ];
 
 const allowCors = fn => async (req, res) => {
