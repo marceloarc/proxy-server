@@ -1,38 +1,35 @@
-const allowedOrigins = [
-  'https://localhost:8000',
-  'https://localhost:80',
-  'http://localhost:80'
-  'http://localhost:8000',
-  'localhost:8000',
-  'https://marceloarc.github.io/editor-de-imagem/',
-  'https://marceloarc.github.io',
-  'null'
-];
+// api/proxy.js
+const Cors = require('cors');
 
-const allowCors = fn => async (req, res) => {
-  const origin = req.headers.origin;
+// Inicia o middleware CORS
+const cors = Cors({
+  methods: ['GET', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: '*', // Permite todas as origens (use um valor mais restritivo, se necessário)
+});
 
-  // Verifica se o origin da requisição é válido
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', 'https://fallbackdomain.com'); // ou '*' para aceitar todas as origens
-  }
+// A função de ajudar a rodar o middleware CORS de forma assíncrona
+function runMiddleware(req, res, fn) {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
+    });
+  });
+}
 
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS, PATCH, DELETE, POST, PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+module.exports = async (req, res) => {
+  // Executa o middleware CORS
+  await runMiddleware(req, res, cors);
 
+  // Agora o seu handler pode processar a requisição
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
-  
-  return await fn(req, res);
-};
 
-const handler = async (req, res) => {
-  // Lógica do seu handler
+  // A partir de agora, você pode usar sua lógica aqui
+  res.json({ message: "Acesso permitido" });
 };
-
-module.exports = allowCors(handler);
