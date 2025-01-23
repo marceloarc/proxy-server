@@ -1,15 +1,15 @@
-
 // api/proxy.js
 const Cors = require('cors');
+const fetch = require('node-fetch'); // Para fazer chamadas à API externa
 
 // Inicia o middleware CORS
 const cors = Cors({
-  methods: ['GET', 'HEAD'],
+  methods: ['GET', 'POST', 'HEAD'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  origin: '*', // Permite todas as origens (use um valor mais restritivo, se necessário)
+  origin: '*', // Permite todas as origens
 });
 
-// A função de ajudar a rodar o middleware CORS de forma assíncrona
+// Função para rodar o middleware de CORS
 function runMiddleware(req, res, fn) {
   return new Promise((resolve, reject) => {
     fn(req, res, (result) => {
@@ -25,12 +25,48 @@ module.exports = async (req, res) => {
   // Executa o middleware CORS
   await runMiddleware(req, res, cors);
 
-  // Agora o seu handler pode processar a requisição
+  // Se o método for OPTIONS, não faz nada, só responde com sucesso
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
-  // A partir de agora, você pode usar sua lógica aqui
-  res.json({ message: "Acesso permitido" });
+  try {
+    // Lógica para obter dados e repassar a requisição
+    const url = decodeURIComponent(req.query.url);  // Pega a URL codificada da query string
+    const apiKey = "SUA_API_KEY"; // Se a API externa precisar de alguma autenticação
+
+    // Caso o método seja POST, faça o forward da requisição com dados
+    if (req.method === 'POST') {
+      const data = req.body; // Pega os dados enviados pelo cliente
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`, // Se for necessário enviar um header Authorization
+        },
+        body: JSON.stringify(data), // Envia o conteúdo da requisição no corpo
+      });
+
+      const result = await response.json();
+      res.status(200).json(result);  // Retorna os dados da resposta
+
+    } else {
+      // Se for GET, apenas faz a requisição para o endpoint de terceiros
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}` // Se necessário enviar o header Authorization
+        }
+      });
+
+      const result = await response.json(); // Captura a resposta
+      res.status(200).json(result); // Retorna os dados obtidos da requisição
+    }
+    
+  } catch (error) {
+    // Caso algo dê errado, retorna um erro 500
+    res.status(500).json({ error: 'Erro ao fazer a requisição à API externa', details: error.message });
+  }
 };
