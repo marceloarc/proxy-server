@@ -1,29 +1,41 @@
-const allowCors = (fn) => async (req, res) => {
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');  // Altere se necessário (teste `*` para "qualquer origem" ou seu domínio específico).
+const allowCors = fn => async (req, res) => {
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');  // Aqui, isso permite qualquer origem
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS, PATCH, DELETE, POST, PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-  
+
+  // Preflight request para OPTIONS
   if (req.method === 'OPTIONS') {
-    res.status(200).end();  // Isso responde à requisição do tipo "preflight"
+    res.status(200).end();
     return;
   }
   
-  return await fn(req, res);  // Chama a função de processamento
+  return await fn(req, res);  // Continuar com a requisição real
 };
 
 const handler = async (req, res) => {
-  const url = req.query.url; // A URL que você está pedindo para acessar via proxy
+  const url = decodeURIComponent(req.query.url);  // A URL original da API
+
+  const accessKey = 'RAXU1PptzmyPgMjOUO0MIO4mELSR-bVCNM_QmAqcVsk';  // Substitua pela sua chave de API
 
   try {
-    // Fez o proxy da chamada de API para o destino
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    res.status(200).json(data);  // Retorna os dados da resposta da API
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessKey}`,  // Autenticação do tipo Bearer
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      res.status(200).json(data);  // Retorna a resposta do servidor de destino para o cliente
+    } else {
+      res.status(response.status).json({ error: 'Erro na requisição' });
+    }
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching data from URL' });
+    res.status(500).json({ error: 'Erro ao buscar dados da URL' });
   }
 };
 
-module.exports = allowCors(handler);  // Exporta o proxy com o CORS
+module.exports = allowCors(handler);  // Envio da função que lida com o CORS
