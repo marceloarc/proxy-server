@@ -1,14 +1,15 @@
+// api/proxy.js
 const Cors = require('cors');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch'); // Para fazer chamadas à API externa
 
-// Configurações do middleware CORS
+// Inicia o middleware CORS
 const cors = Cors({
   methods: ['GET', 'POST', 'HEAD'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  origin: '*', // Permitir todas as origens (ajuste conforme necessário para maior segurança)
+  origin: '*', // Permite todas as origens
 });
 
-// Função para executar o middleware de CORS
+// Função para rodar o middleware de CORS
 function runMiddleware(req, res, fn) {
   return new Promise((resolve, reject) => {
     fn(req, res, (result) => {
@@ -24,51 +25,55 @@ module.exports = async (req, res) => {
   // Executa o middleware CORS
   await runMiddleware(req, res, cors);
 
-  // Trata requisições OPTIONS para CORS
+  // Se o método for OPTIONS, não faz nada, só responde com sucesso
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
   try {
-    const { url } = req.query; // Extrai o URL passado na query string
-    if (!url) {
-      return res.status(400).json({ error: 'É necessário passar a URL como query string ?url=<URL>' });
-    }
+    // Lógica para obter dados e repassar a requisição
+    const url = decodeURIComponent(req.query.url);  // Pega a URL codificada da query string
+    // Caso o método seja POST, faça o forward da requisição com dados
+    if (req.method === 'POST') {
+      const data = req.body; // Pega os dados enviados pelo cliente
 
-    // Decodifica a URL para evitar problemas com caracteres especiais
-    const decodedUrl = decodeURIComponent(url);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`, // Se for necessário enviar um header Authorization
+        },
+        body: JSON.stringify(data), // Envia o conteúdo da requisição no corpo
+      });
 
-    // Configurações padrão para a requisição externa
-    const fetchOptions = {
-      method: req.method, // Usar o mesmo método da requisição original (GET ou POST)
-      headers: {
-        ...req.headers, // Passa os headers da requisição original
-        'Authorization': req.headers.authorization || undefined, // Inclui header Authorization, se existir
-      },
-    };
+      const result = await response.json();
+      res.status(200).json(result);  // Retorna os dados da resposta
 
-    // Apenas inclua o corpo se for uma requisição POST
-    if (req.method === 'POST' && req.body) {
-      fetchOptions.body = JSON.stringify(req.body);
-      fetchOptions.headers['Content-Type'] = 'application/json'; // Garantir que o Content-Type seja configurado
-    }
-
-    // Faz a requisição para a URL externa
-    const response = await fetch(decodedUrl, fetchOptions);
-
-    // Manipula a resposta (JSON ou outros tipos de conteúdo)
-    if (response.headers.get('content-type')?.includes('application/json')) {
-      const json = await response.json();
-      res.status(response.status).json(json);
     } else {
-      // Propaga outros tipos de conteúdo (ex.: arquivos ou texto simples)
-      res.setHeader('Content-Type', response.headers.get('content-type'));
-      const stream = response.body; // Fluxo de dados
-      stream.pipe(res);
+        var response;
+      if(req.headers.authorization){
+        response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Authorization': req.headers.authorization // Se necessário enviar o header Authorization
+            }
+          });
+          const result = await response.json(); // Captura a resposta
+        res.status(200).json(result); // Retorna os dados obtidos da requisição
+      }else{
+        response = await fetch(url, {
+            method: 'GET',
+          });
+          const result = await response.json(); // Captura a resposta
+        res.status(200).json(result); // Retorna os dados obtidos da requisição
+      }
+
+
     }
+    
   } catch (error) {
-    // Erro ao processar a requisição
-    res.status(500).json({ error: 'Erro ao fazer a requisição para a URL', details: error.message });
+    // Caso algo dê errado, retorna um erro 500
+    res.status(500).json({ error: 'Erro ao fazer a requisição à API externa', details: error.message });
   }
 };
