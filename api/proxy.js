@@ -34,6 +34,7 @@ module.exports = async (req, res) => {
   try {
     // Lógica para obter dados e repassar a requisição
     const url = decodeURIComponent(req.query.url);  // Pega a URL codificada da query string
+    var type = req.query.type;
     // Caso o método seja POST, faça o forward da requisição com dados
     if (req.method === 'POST') {
       const data = req.body; // Pega os dados enviados pelo cliente
@@ -65,10 +66,18 @@ module.exports = async (req, res) => {
         response = await fetch(url, {
             method: 'GET',
           });
-          const result = await response.json(); // Captura a resposta
-        res.status(200).json(result); // Retorna os dados obtidos da requisição
-      }
 
+          if(type="image"){
+            res.status(200).json(url); // Retorna os dados obtidos da requisição
+          }
+          else
+          {
+            const result = await response.json(); // Captura a resposta
+            res.status(200).json(result); // Retorna os dados obtidos da requisição
+          }
+
+
+      }
 
     }
     
