@@ -67,7 +67,7 @@ module.exports = async (req, res) => {
             method: 'GET',
           });
 
-          if(type="image"){
+          if(type=="image"){
             res.status(200).json(url); // Retorna os dados obtidos da requisição
           }
           else
