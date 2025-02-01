@@ -76,7 +76,6 @@ module.exports = async (req, res) => {
             res.status(200).json(result); // Retorna os dados obtidos da requisição
           }
 
-
       }
 
     }
